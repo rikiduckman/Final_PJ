@@ -1,0 +1,19 @@
+.container-form {
+    position: absolute; /* หรือใช้ position: fixed; ตามที่ต้องการ */
+    display: flex;
+    flex-direction: column;
+    width: 20%;
+    height: 800px;
+    margin: auto;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+#container-cal{
+    display: none;
+}
+#container-subject{
+    display: none;
+}
+
