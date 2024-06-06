@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/user.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-md-6 offset-md-3">
+        <div class="card">
+          <div class="card-header">
+            <h1 class="text-center">User Profile</h1>
+          </div>
+          <div class="card-body">
+            <p><strong>ชื่อ - นามสกุล</strong> <%= user.displayName %></p>
+            <p id="userEmail"><strong>รหัสนักศึกษา :</strong> <span id="studentId"><%= user.email.split('@')[0] %></span></p>
+
+            <!-- Add table for subjects and grades -->
+            <h3>รายวิชาและเกรด</h3>
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>ชื่อวิชา</th>
+                  <th>เกรด</th>
+                </tr>
+              </thead>
+              <tbody id="gradesTableBody">
+                <!-- Grades will be dynamically inserted here -->
+              </tbody>
+            </table>
+
+            <!-- Add buttons -->
+            <a href="/transcript" class="btn btn-primary btn-sm">พยากรณ์</a>
+            <a href="/logout" class="btn btn-danger btn-sm ml-2">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      var studentId = $("#studentId").text();
+      if (studentId.length >= 12) {
+        studentId = studentId.slice(0, 11) + "-" + studentId.slice(11);
+        $("#studentId").text(studentId);
+      }
+  
+      // Fetch grades data from the server
+      $.get("/usergrades", function(data) {
+        var gradesTableBody = $("#gradesTableBody");
+        if (data && data.length > 0) {
+          data.forEach(function(item) {
+            gradesTableBody.append(`<tr><td>${item.subject}</td><td>${item.grade}</td></tr>`);
+          });
+        } else {
+          gradesTableBody.append(`<tr><td colspan="2" class="text-center">ไม่มีข้อมูล</td></tr>`);
+        }
+      });
+    });
+  </script>
+  
+</body>
+</html>

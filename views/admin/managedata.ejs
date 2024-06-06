@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CSV File</title>
+    <!-- Link Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/managedata.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="row mt-5">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        เพิ่มข้อมูลสำหรับพยากรณ์
+                        <a href="/admin" onclick="history.back();" class="btn btn-sm btn-secondary float-right">ย้อนกลับ</a>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm" enctype="multipart/form-data" method="POST">
+                            <div class="form-group">
+                                <input type="file" class="form-control-file" id="csvFile" name="csvFile" accept=".csv" required>
+                            </div>
+                        </form>
+
+                        <h5 class="mt-5">CSV Preview:</h5>
+                        <table id="csvPreview" class="table table-bordered mt-2">
+                            <thead>
+                                <tr id="csvPreviewHeader"></tr>
+                            </thead>
+                            <tbody id="csvPreviewBody"></tbody>
+                        </table>
+
+                        <button type="submit" form="uploadForm" class="btn btn-primary btn-sm">Upload</button>
+
+                        <h5 class="mt-5">Uploaded Files:</h5>
+                        <table class="table mt-2">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อไฟล์</th>
+                                    <th>วันเวลา</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fileTableBody"></tbody>
+                        </table>
+
+                        <div id="notification"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        window.addEventListener('load', function() {
+            fetchUploadedData();
+        });
+
+        function fetchUploadedData() {
+            const uploadedData = JSON.parse(localStorage.getItem('uploadedData')) || [];
+            const tbody = document.getElementById('fileTableBody');
+            tbody.innerHTML = '';
+            uploadedData.forEach(item => {
+                addFileRow(item);
+            });
+        }
+
+        function addFileRow(file) {
+            const tbody = document.getElementById('fileTableBody');
+            const tr = document.createElement('tr');
+            const nameTd = document.createElement('td');
+            const dateTd = document.createElement('td');
+            const manageTd = document.createElement('td');
+
+            nameTd.textContent = file.name;
+            dateTd.textContent = new Date(file.date).toLocaleString();
+
+            const editButton = document.createElement('button');
+            const deleteButton = document.createElement('button');
+
+            editButton.textContent = 'แก้ไข';
+            editButton.className = 'btn btn-sm btn-primary mr-2';
+            editButton.addEventListener('click', function() {
+                editRow(tr);
+            });
+
+            deleteButton.textContent = 'ลบ';
+            deleteButton.className = 'btn btn-sm btn-danger';
+            deleteButton.addEventListener('click', function() {
+                tr.remove();
+                saveUploadedData();
+                console.log("Deleted file:", file.name);
+            });
+
+            manageTd.appendChild(editButton);
+            manageTd.appendChild(deleteButton);
+
+            tr.appendChild(nameTd);
+            tr.appendChild(dateTd);
+            tr.appendChild(manageTd);
+
+            tbody.appendChild(tr);
+        }
+
+        document.getElementById('csvFile').addEventListener('change', function(event) {
+            const inputFile = event.target;
+            const file = inputFile.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const rows = text.split('\n').map(row => row.split(','));
+
+                    const header = document.getElementById('csvPreviewHeader');
+                    const tbody = document.getElementById('csvPreviewBody');
+
+                    header.innerHTML = '';
+                    tbody.innerHTML = '';
+
+                    const headers = rows[0];
+                    headers.forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        header.appendChild(th);
+                    });
+
+                    rows.slice(1).forEach(row => {
+                        if (row.length > 1) {
+                            const tr = document.createElement('tr');
+                            row.forEach(cell => {
+                                const td = document.createElement('td');
+                                td.textContent = cell;
+                                tr.appendChild(td);
+                            });
+                            tbody.appendChild(tr);
+                        }
+                    });
+                };
+                reader.readAsText(file);
+                document.getElementById('csvPreview').style.display = 'block';
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const inputFile = document.getElementById('csvFile').files[0];
+
+            fetch('/uploaddata', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('File uploaded successfully');
+                    document.getElementById('csvPreview').style.display = 'none';
+                    const newFile = {
+                        name: inputFile.name,
+                        date: new Date().toISOString()
+                    };
+                    addFileRow(newFile);
+                    saveUploadedData();
+                    document.getElementById('notification').innerHTML = '<p style="color: green;">Upload successful</p>';
+                } else {
+                    console.error('File upload failed');
+                    document.getElementById('notification').innerHTML = '<p style="color: red;">Upload failed</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+                document.getElementById('notification').innerHTML = '<p style="color: red;">Error uploading file</p>';
+            });
+        });
+
+        function editRow(tr) {
+            const nameTd = tr.children[0];
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = nameTd.textContent;
+            nameTd.innerHTML = '';
+            nameTd.appendChild(input);
+
+            const manageTd = tr.children[2];
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'บันทึก';
+            saveButton.className = 'btn btn-sm btn-success';
+            saveButton.addEventListener('click', function() {
+                saveRow(tr);
+            });
+
+            manageTd.innerHTML = '';
+            manageTd.appendChild(saveButton);
+        }
+
+        function saveRow(tr) {
+            const nameTd = tr.children[0];
+            const input = nameTd.querySelector('input');
+            nameTd.textContent = input.value;
+
+            const manageTd = tr.children[2];
+            const editButton = document.createElement('button');
+            editButton.textContent = 'แก้ไข';
+            editButton.className = 'btn btn-sm btn-primary mr-2';
+            editButton.addEventListener('click', function() {
+                editRow(tr);
+            });
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'ลบ';
+            deleteButton.className = 'btn btn-sm btn-danger';
+            deleteButton.addEventListener('click', function() {
+                deleteRow(tr);
+            });
+
+            manageTd.innerHTML = '';
+            manageTd.appendChild(editButton);
+            manageTd.appendChild(deleteButton);
+
+            saveUploadedData();
+        }
+
+        function deleteRow(tr) {
+            const fileName = tr.children[0].textContent;
+            tr.remove();
+            const uploadedData = JSON.parse(localStorage.getItem('uploadedData')) || [];
+            const updatedData = uploadedData.filter(file => file.name !== fileName);
+            localStorage.setItem('uploadedData', JSON.stringify(updatedData));
+            document.getElementById('notification').innerHTML = '<p style="color: green;">File deleted successfully</p>';
+            console.log("Deleted file:", fileName);
+        }
+
+        function saveUploadedData() {
+            const tbody = document.getElementById('fileTableBody');
+            const rows = Array.from(tbody.children);
+            const uploadedData = rows.map(row => {
+                return {
+                    name: row.children[0].textContent,
+                    date: new Date(row.children[1].textContent).toISOString()
+                };
+            });
+            localStorage.setItem('uploadedData', JSON.stringify(uploadedData));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+.login-container {
+    padding: 50px;
+    margin-top: 50px; 
+    text-align: center; 
+}
+h1 {
+    font-size: 2.5em;
+    margin-bottom: 30px;
+}
+.btn-primary {
+    padding: 10px 30px; 
+    font-size: 1.2em; 
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
